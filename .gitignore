@@ -2,3 +2,4 @@
 .gradle
 build
 javadoc
+**/.DS_Store
