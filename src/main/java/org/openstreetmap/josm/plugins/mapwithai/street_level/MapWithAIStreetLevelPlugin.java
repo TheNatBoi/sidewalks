@@ -1,5 +1,7 @@
 // License: GPL. For details, see LICENSE file.
 package org.openstreetmap.josm.plugins.mapwithai.street_level;
+import org.openstreetmap.josm.plugins.mapwithai.street_level.actions.SetSidepathOfNameFromClickedRoadAction;
+import org.openstreetmap.josm.plugins.mapwithai.street_level.actions.TagRoadSidewalkSidesFromSelectedSidewalksAction;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -38,6 +40,8 @@ public class MapWithAIStreetLevelPlugin extends Plugin implements Destroyable {
         super(info);
         final JMenu dataMenu = MainApplication.getMenu().dataMenu;
         MainMenu.add(dataMenu, new ParallelSidewalkCreationAction());
+		MainMenu.add(dataMenu, new SetSidepathOfNameFromClickedRoadAction());
+		dataMenu.add(new TagRoadSidewalkSidesFromSelectedSidewalksAction());
         MapWithAIStreetLevelConfig.setUrls(new MapWithAIStreetLevelUrls());
         AbstractPrimitive.getDiscardableKeys().add("suggestion-id");
     }

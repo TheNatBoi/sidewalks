@@ -3,7 +3,10 @@ package org.openstreetmap.josm.plugins.mapwithai.street_level.data;
 
 import static org.openstreetmap.josm.tools.I18n.tr;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
@@ -56,6 +59,14 @@ public class CrossingCommandListener implements UndoRedoHandler.CommandQueuePrec
         if (!newTags.isEmpty() && changePropertyCommand.getParticipatingPrimitives().size() == 1) {
             final var changed = changePropertyCommand.getParticipatingPrimitives().iterator().next();
             newTags.putAll(getCommonCrossingTags(changed.getKeys()));
+			// --- NEW: Inject crossing:markings=no if crossing=unmarked ---
+            boolean addMarkingsNoToOriginal = false;
+            if ("unmarked".equals(newTags.get(CROSSING))) {
+                newTags.put("crossing:markings", "no"); // Applies to linked primitive
+                if (!changed.hasTag("crossing:markings", "no")) {
+                    addMarkingsNoToOriginal = true; // Applies to the one you clicked
+                }
+            }
             final Collection<OsmPrimitive> linked;
             if (changed instanceof Way footway) {
                 linked = processWay(newTags, footway);
@@ -65,6 +76,11 @@ public class CrossingCommandListener implements UndoRedoHandler.CommandQueuePrec
                 // Relations are not supported for syncing crossing tags
                 return null;
             }
+			// Don't let the sync code remove highway=crossing from crossing nodes.
+			// This listener's job is to sync "crossing details" but it should not rewrite the node's highway tag.
+			if (linked.stream().anyMatch(Node.class::isInstance)) {
+				newTags.remove(HIGHWAY);
+			}
             if (!newTags.entrySet().stream().allMatch(
                     entry -> linked.stream().allMatch(link -> link.hasTag(entry.getKey(), entry.getValue())))) {
                 return new ChangePropertyCommand(linked, newTags);
@@ -90,15 +106,21 @@ public class CrossingCommandListener implements UndoRedoHandler.CommandQueuePrec
                 .collect(Collectors.toSet());
     }
 
-    private static Map<String, String> getCommonCrossingTags(Map<String, String> object) {
-        final var crossingMap = new TreeMap<String, String>();
-        for (var key : COMMON_TAGS) {
-            if (object.containsKey(key)) {
-                crossingMap.put(key, object.get(key));
-            }
-        }
-        return crossingMap;
-    }
+	private static Map<String, String> getCommonCrossingTags(Map<String, String> object) {
+		final var crossingMap = new TreeMap<String, String>();
+		for (var key : COMMON_TAGS) {
+			if (object.containsKey(key)) {
+				final String value = object.get(key);
+				// Don't sync cycleway=crossing between crossing ways and crossing nodes.
+				// (Keep syncing other cycleway=* values, e.g. cycleway=shared_lane.)
+				if ("cycleway".equals(key) && "crossing".equals(value)) {
+					continue;
+				}
+				crossingMap.put(key, value);
+			}
+		}
+		return crossingMap;
+	}
 
     @Override
     public void cleaned(UndoRedoHandler.CommandQueueCleanedEvent e) {
