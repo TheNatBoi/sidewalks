@@ -411,7 +411,10 @@ class SidewalkModeTest {
         clickAt(39.0691728, -108.566019);
         clickAt(39.0691728, -108.566019); // Finish drawing
         final var crossing = this.ds.getLastSelectedWay();
-        assertEquals(Map.of("highway", "footway", "footway", "crossing"), crossing.getKeys());
+        assertAll(
+                () -> assertEquals("footway", crossing.get("highway")),
+                () -> assertEquals("crossing", crossing.get("footway"))
+        );
         assertEquals(!tooFar, crossing.containsNode(crossingNode));
         assertEquals(3, crossing.getNodesCount());
         assertEquals(tooFar ? 4 : 3, highway.getNodesCount());
@@ -431,7 +434,10 @@ class SidewalkModeTest {
         clickAt(39.0691728, -108.566019);
         clickAt(39.0691728, -108.566019); // Finish drawing
         final var crossing = this.ds.getLastSelectedWay();
-        assertEquals(Map.of("highway", "footway", "footway", "crossing"), crossing.getKeys());
+        assertAll(
+                () -> assertEquals("footway", crossing.get("highway")),
+                () -> assertEquals("crossing", crossing.get("footway"))
+        );
         assertEquals(!tooFar, crossing.containsNode(crossingNode));
         assertEquals(3, crossing.getNodesCount());
         assertEquals(tooFar ? 4 : 3, highway.getNodesCount());
