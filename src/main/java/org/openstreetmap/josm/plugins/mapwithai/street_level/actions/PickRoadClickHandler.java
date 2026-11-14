@@ -3,22 +3,24 @@ package org.openstreetmap.josm.plugins.mapwithai.street_level.actions;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 
 import javax.swing.JOptionPane;
-import java.util.Collection;
-import java.util.HashSet;
 
-import org.openstreetmap.josm.gui.layer.OsmDataLayer;
-import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.command.ChangePropertyCommand;
+import org.openstreetmap.josm.command.Command;
+import org.openstreetmap.josm.command.SequenceCommand;
 import org.openstreetmap.josm.data.UndoRedoHandler;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Way;
 import org.openstreetmap.josm.gui.MainApplication;
-import org.openstreetmap.josm.gui.Notification;
 import org.openstreetmap.josm.gui.MapFrame;
 import org.openstreetmap.josm.gui.MapView;
+import org.openstreetmap.josm.gui.Notification;
+import org.openstreetmap.josm.gui.layer.OsmDataLayer;
 
 /**
  * Installs a one-shot click handler: the next left-click on a highway way copies its name=*
@@ -73,14 +75,6 @@ public final class PickRoadClickHandler extends MouseAdapter {
             new Notification("No highway way found under cursor. Click directly on a road.")
                     .setDuration(3500)
                     .show();
-			final OsmDataLayer layer2 = MainApplication.getLayerManager().getEditLayer();
-			if (layer2 != null) {
-				final DataSet ds = layer2.getDataSet();
-				if (ds != null) {
-					ds.setSelected(selectionToRestore);
-				}
-			}
-            cleanup(mv);
             return;
         }
 
@@ -88,18 +82,19 @@ public final class PickRoadClickHandler extends MouseAdapter {
 		final String roadName = road.get("name");     // may be null/blank
 		final String roadRef = road.get("ref");       // may be null/blank
 
-		UndoRedoHandler.getInstance().add(new ChangePropertyCommand(this.targets, "is_sidepath", "yes"));
+		final List<Command> commands = new ArrayList<>();
+		commands.add(new ChangePropertyCommand(this.targets, "is_sidepath", "yes"));
 
 		if (highway != null && !highway.isBlank()) {
-			UndoRedoHandler.getInstance().add(new ChangePropertyCommand(this.targets, "is_sidepath:of", highway));
+			commands.add(new ChangePropertyCommand(this.targets, "is_sidepath:of", highway));
 		}
 
 		if (roadName != null && !roadName.isBlank()) {
-			UndoRedoHandler.getInstance().add(new ChangePropertyCommand(this.targets, "is_sidepath:of:name", roadName));
+			commands.add(new ChangePropertyCommand(this.targets, "is_sidepath:of:name", roadName));
 		}
 
 		if (roadRef != null && !roadRef.isBlank()) {
-			UndoRedoHandler.getInstance().add(new ChangePropertyCommand(this.targets, "is_sidepath:of:ref", roadRef));
+			commands.add(new ChangePropertyCommand(this.targets, "is_sidepath:of:ref", roadRef));
 		}
 		
         if (roadName == null || roadName.isBlank()) {
@@ -109,23 +104,26 @@ public final class PickRoadClickHandler extends MouseAdapter {
                     "No road name",
                     JOptionPane.WARNING_MESSAGE
             );
+            UndoRedoHandler.getInstance().add(SequenceCommand.wrapIfNeeded("Set sidepath tags", commands));
+            restoreSelection();
             cleanup(mv);
             return;
         }
 
-        UndoRedoHandler.getInstance().add(new ChangePropertyCommand(this.targets, KEY, roadName));
-
+        commands.add(new ChangePropertyCommand(this.targets, KEY, roadName));
         new Notification("Set " + KEY + "=" + roadName + " on " + this.targets.size() + " way(s).")
                 .setDuration(2000)
                 .show();
-		final OsmDataLayer layer2 = MainApplication.getLayerManager().getEditLayer();
-		if (layer2 != null) {
-			final DataSet ds = layer2.getDataSet();
-			if (ds != null) {
-				ds.setSelected(selectionToRestore);
-			}
-		}
+        UndoRedoHandler.getInstance().add(SequenceCommand.wrapIfNeeded("Set sidepath tags", commands));
+        restoreSelection();
         cleanup(mv);
+    }
+
+    private void restoreSelection() {
+        final OsmDataLayer layer = MainApplication.getLayerManager().getEditLayer();
+        if (layer != null && layer.getDataSet() != null) {
+            layer.getDataSet().setSelected(selectionToRestore);
+        }
     }
 
     private void cleanup(MapView mv) {

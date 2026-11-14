@@ -99,4 +99,16 @@ class ParallelSidewalkCreationTest {
         assertSame(sidewalk.firstNode(), sidewalk.lastNode());
         assertLatLonEquals(39.0681125, -108.5656153, sidewalk.firstNode().lat(), sidewalk.firstNode().lon());
     }
+
+    @Test
+    void testCreatingBothSidesDoesNotReverseSourceWay() {
+        Way way = newWay("", 39.1693132, -108.7186835, 39.1693101, -108.7175632, 39.1693223, -108.7166861);
+        var firstNode = way.firstNode();
+        var lastNode = way.lastNode();
+
+        ParallelSidewalkCreation.createParallelSidewalks(way, ParallelSidewalkCreation.Options.values());
+
+        assertSame(firstNode, way.firstNode());
+        assertSame(lastNode, way.lastNode());
+    }
 }
