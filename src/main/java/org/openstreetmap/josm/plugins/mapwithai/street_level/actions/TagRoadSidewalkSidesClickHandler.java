@@ -101,9 +101,9 @@ public final class TagRoadSidewalkSidesClickHandler extends MouseAdapter {
             return;
         }
 
-        // Compute coverage intervals for left/right in terms of distance-along-road (meters)
-        final var intersectionCuts = computeIntersectionCuts(road);
-
+        // Compute coverage intervals for left/right in terms of distance-along-road (meters).
+        // Intersections are not split points: the selected sidewalk endpoints define the
+        // coverage boundaries.
         final List<Interval> left = new ArrayList<>();
         final List<Interval> right = new ArrayList<>();
 
@@ -131,24 +131,16 @@ public final class TagRoadSidewalkSidesClickHandler extends MouseAdapter {
                     .show();
             }
 
-            Interval raw = new Interval(Math.min(pa.alongMeters, pb.alongMeters), Math.max(pa.alongMeters, pb.alongMeters));
-            // Apply intersection rule: do not allow intervals to cross intersection cut points
-            final List<Interval> chopped = chopAtCuts(raw, intersectionCuts);
+            Interval raw = new Interval(Math.min(pa.alongMeters, pb.alongMeters),
+                    Math.max(pa.alongMeters, pb.alongMeters));
 
-            if (side == Side.LEFT) left.addAll(chopped);
-            else right.addAll(chopped);
+            if (side == Side.LEFT) left.add(raw);
+            else right.add(raw);
         }
 
         // Bridge any gaps (like pedestrian crossings) between selected sidewalks on the same side
-        final List<Interval> leftBridged = bridgeGaps(left);
-        final List<Interval> rightBridged = bridgeGaps(right);
-        
-        // Re-apply the intersection cuts to the bridged spans so we still split the road correctly at intersections
-        final List<Interval> leftU = new ArrayList<>();
-        if (!leftBridged.isEmpty()) leftU.addAll(chopAtCuts(leftBridged.get(0), intersectionCuts));
-        
-        final List<Interval> rightU = new ArrayList<>();
-        if (!rightBridged.isEmpty()) rightU.addAll(chopAtCuts(rightBridged.get(0), intersectionCuts));
+        final List<Interval> leftU = union(bridgeGaps(left));
+        final List<Interval> rightU = union(bridgeGaps(right));
 
         // Find the absolute extents of the selected sidewalks
         double minCoverage = Double.MAX_VALUE;
@@ -167,11 +159,10 @@ public final class TagRoadSidewalkSidesClickHandler extends MouseAdapter {
             return;
         }
 
-        // Determine split points: all interval boundaries + intersection cuts
-        final var splitMeters = new HashSet<Double>(); // <-- This line was missing!
+        // Determine split points from sidewalk coverage boundaries only.
+        final var splitMeters = new HashSet<Double>();
         leftU.forEach(i -> { splitMeters.add(i.a); splitMeters.add(i.b); });
         rightU.forEach(i -> { splitMeters.add(i.a); splitMeters.add(i.b); });
-        splitMeters.addAll(intersectionCuts);
 
         // Remove endpoints (0 and total length) so we don't try to split at ends
         final double totalLen = road.getLength(); // meters
@@ -433,43 +424,6 @@ public final class TagRoadSidewalkSidesClickHandler extends MouseAdapter {
             if (Math.abs(acc - alongMeters) <= tolMeters) return n;
         }
         return null;
-    }
-
-    private static List<Double> computeIntersectionCuts(Way road) {
-        final List<Double> cuts = new ArrayList<>();
-        double acc = 0.0;
-        for (int i = 0; i < road.getNodesCount(); i++) {
-            final Node n = road.getNode(i);
-            if (n == null) continue;
-
-            if (i > 0) {
-                final Node prev = road.getNode(i - 1);
-                if (prev != null) acc += prev.greatCircleDistance(n);
-            }
-
-            // intersection if node is shared with another highway=* way
-            final boolean isIntersection = n.getParentWays().stream()
-                .filter(w -> w != null && !Objects.equals(w, road))
-                .anyMatch(w -> w.hasKey(HIGHWAY));
-
-            if (isIntersection) cuts.add(acc);
-        }
-        // de-dupe and sort
-        return cuts.stream().distinct().sorted().collect(Collectors.toList());
-    }
-
-    private static List<Interval> chopAtCuts(Interval in, List<Double> cuts) {
-        final List<Double> inside = cuts.stream().filter(c -> c > in.a && c < in.b).sorted().collect(Collectors.toList());
-        if (inside.isEmpty()) return List.of(in);
-
-        final List<Interval> out = new ArrayList<>();
-        double s = in.a;
-        for (double c : inside) {
-            out.add(new Interval(s, c));
-            s = c;
-        }
-        out.add(new Interval(s, in.b));
-        return out;
     }
 
     private static List<Interval> union(List<Interval> intervals) {

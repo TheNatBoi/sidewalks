@@ -55,7 +55,9 @@ public final class ParallelSidewalkCreation {
         } else {
             width = 11.5f; // 8.5m for road, another 3m for sidewalk
         }
-        List<N> nodes = way.getNodes();
+        // Work on a copy: reversing this list for the left side must not reverse
+        // the source way's geometry.
+        List<N> nodes = new ArrayList<>(way.getNodes());
         Map<Options, List<ILatLon>> sidewalkLatLons = new EnumMap<>(Options.class);
         if (Arrays.asList(options).contains(Options.RIGHT)) {
             sidewalkLatLons.put(Options.RIGHT, createParallelNodes(nodes, width / 2, way.isClosed()));
