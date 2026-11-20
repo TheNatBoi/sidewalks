@@ -88,4 +88,34 @@ class CrossingCommandListenerTest {
         threadSyncExtension.threadSync();
         assertEquals("crossing", crossing.get("highway"));
     }
+
+    @Test
+    void testSynchronizationCrossingIsland() {
+        final var crossingNode = TestUtils.newNode("highway=crossing");
+        final var crossingWay = TestUtils.newWay("highway=footway footway=crossing", new Node(LatLon.NORTH_POLE),
+                crossingNode, new Node(LatLon.SOUTH_POLE));
+        final var dataSet = new DataSet();
+        dataSet.addPrimitiveRecursive(crossingWay);
+
+        UndoRedoHandler.getInstance()
+                .add(new ChangePropertyCommand(crossingNode, "crossing:island", "yes"));
+        threadSyncExtension.threadSync();
+
+        assertEquals("yes", crossingWay.get("crossing:island"));
+    }
+
+    @Test
+    void testSynchronizationCrossingIslandToNode() {
+        final var crossingNode = TestUtils.newNode("highway=crossing");
+        final var crossingWay = TestUtils.newWay("highway=footway footway=crossing", new Node(LatLon.NORTH_POLE),
+                crossingNode, new Node(LatLon.SOUTH_POLE));
+        final var dataSet = new DataSet();
+        dataSet.addPrimitiveRecursive(crossingWay);
+
+        UndoRedoHandler.getInstance()
+                .add(new ChangePropertyCommand(crossingWay, "crossing:island", "yes"));
+        threadSyncExtension.threadSync();
+
+        assertEquals("yes", crossingNode.get("crossing:island"));
+    }
 }
