@@ -382,6 +382,7 @@ public class SidewalkMode extends MapMode implements MapFrame.MapModeChangeListe
 		}
 
 		crossingWay.put("crossing:continuous", isContinuous ? "yes" : "no");
+		crossingWay.put("crossing:island", "no");
 
 		if ("unmarked".equals(crossingWay.get("crossing"))) {
 			crossingWay.put("crossing:markings", "no");
@@ -414,6 +415,11 @@ public class SidewalkMode extends MapMode implements MapFrame.MapModeChangeListe
 				
 				Map<String, String> nodeTags = new TreeMap<>();
 				nodeTags.put(crossingKey, CROSSING);
+
+				if (n.hasKey("crossing:island")) {
+					crossingWay.put("crossing:island", n.get("crossing:island"));
+				}
+				nodeTags.put("crossing:island", crossingWay.get("crossing:island"));
 				
 				if (wayUnmarked || nodeUnmarked) {
 					crossingWay.put("crossing", "unmarked");

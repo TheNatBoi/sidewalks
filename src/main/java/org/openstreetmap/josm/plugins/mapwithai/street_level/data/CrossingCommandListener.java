@@ -29,6 +29,7 @@ public class CrossingCommandListener implements UndoRedoHandler.CommandQueuePrec
     private static final String FOOTWAY = "footway";
     private static final String CROSSING = "crossing";
     private static final String[] COMMON_TAGS = new String[] { "bicycle", CROSSING, "crossing:continuous",
+            "crossing:island",
             "crossing:markings", "crossing:signals", "crossing_ref", "cycleway", "flashing_lights", FOOTWAY, HIGHWAY,
             "horse", "path", "railway", "segregated", "traffic_signals:sound", "traffic_signals:vibration", };
 

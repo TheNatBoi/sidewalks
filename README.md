@@ -20,6 +20,7 @@ that are synchronized:
 * `bicycle`
 * `crossing`
 * `crossing:continuous`
+* `crossing:island`
 * `crossing:markings`
 * `crossing:signals`
 * `crossing_ref`

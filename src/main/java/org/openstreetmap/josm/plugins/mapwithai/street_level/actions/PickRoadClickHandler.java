@@ -91,10 +91,14 @@ public final class PickRoadClickHandler extends MouseAdapter {
 
 		if (roadName != null && !roadName.isBlank()) {
 			commands.add(new ChangePropertyCommand(this.targets, "is_sidepath:of:name", roadName));
+		} else {
+			commands.add(new ChangePropertyCommand(this.targets, "is_sidepath:of:name", null));
 		}
 
 		if (roadRef != null && !roadRef.isBlank()) {
 			commands.add(new ChangePropertyCommand(this.targets, "is_sidepath:of:ref", roadRef));
+		} else {
+			commands.add(new ChangePropertyCommand(this.targets, "is_sidepath:of:ref", null));
 		}
 		
         if (roadName == null || roadName.isBlank()) {
